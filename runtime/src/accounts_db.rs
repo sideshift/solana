@@ -5656,36 +5656,11 @@ pub mod tests {
         let pubkey255 = Pubkey::new(&[0xffu8; 32]);
 
         const SLOT: Slot = 1;
-
-        let raw_expected = vec![
-            CalculateHashIntermediate {
-                version: 0,
-                hash: Hash::from_str("5K3NW73xFHwgTWVe4LyCg4QfQda8f88uZj2ypDx2kmmH").unwrap(),
-                lamports: 1,
-                slot: SLOT,
-                pubkey: pubkey0,
-            },
-            CalculateHashIntermediate {
-                version: 1,
-                hash: Hash::from_str("84ozw83MZ8oeSF4hRAg7SeW1Tqs9LMXagX1BrDRjtZEx").unwrap(),
-                lamports: 128,
-                slot: SLOT,
-                pubkey: pubkey127,
-            },
-            CalculateHashIntermediate {
-                version: 2,
-                hash: Hash::from_str("5XqtnEJ41CG2JWNp7MAg9nxkRUAnyjLxfsKsdrLxQUbC").unwrap(),
-                lamports: 129,
-                slot: SLOT,
-                pubkey: pubkey128,
-            },
-            CalculateHashIntermediate {
-                version: 3,
-                hash: Hash::from_str("DpvwJcznzwULYh19Zu5CuAA4AT6WTBe4H6n15prATmqj").unwrap(),
-                lamports: 256,
-                slot: SLOT,
-                pubkey: pubkey255,
-            },
+        let mut raw_expected = vec![
+            CalculateHashIntermediate::new(0, Hash::default(), 1, SLOT, pubkey0),
+            CalculateHashIntermediate::new(1, Hash::default(), 128, SLOT, pubkey127),
+            CalculateHashIntermediate::new(2, Hash::default(), 129, SLOT, pubkey128),
+            CalculateHashIntermediate::new(3, Hash::default(), 256, SLOT, pubkey255),
         ];
 
         accounts.store_uncached(
