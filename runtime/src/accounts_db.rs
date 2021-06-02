@@ -4244,10 +4244,22 @@ impl AccountsDb {
         check_hash: bool,
     ) -> Result<(Hash, u64), BankHashVerificationError> {
         if !use_index {
-            let combined_maps = self.get_snapshot_storages(slot);
+            let mut collect_time = Measure::start("collect");
+            let (combined_maps, slots) = self.get_snapshot_storages(slot, Some(ancestors));
+            collect_time.stop();
+
+            let mut sort_time = Measure::start("sort_storages");
+            let storages = SortedStorages::new_with_slots(&combined_maps, &slots);
+            sort_time.stop();
+
+            let timings = HashStats {
+                collect_snapshots_us: collect_time.as_us(),
+                storage_sort_us: sort_time.as_us(),
+                ..HashStats::default()
+            };
 
             Self::calculate_accounts_hash_without_index(
-                &combined_maps,
+                &storages,
                 Some(&self.thread_pool_clean),
                 check_hash,
             )
@@ -4296,7 +4308,7 @@ impl AccountsDb {
         assert!(bins <= max_plus_1 && bins > 0);
         assert!(bin_range.start < bins && bin_range.end <= bins && bin_range.start < bin_range.end);
         let mut time = Measure::start("scan all accounts");
-        stats.num_snapshot_storage = storage.len();
+        stats.num_snapshot_storage = storage.slot_count();
         let mismatch_found = AtomicU64::new(0);
 
         let result: Vec<Vec<Vec<CalculateHashIntermediate>>> = Self::scan_account_storage_no_bank(
@@ -4363,7 +4375,7 @@ impl AccountsDb {
     // modeled after get_accounts_delta_hash
     // intended to be faster than calculate_accounts_hash
     pub fn calculate_accounts_hash_without_index(
-        storages: &[SnapshotStorage],
+        storages: &SortedStorages,
         thread_pool: Option<&ThreadPool>,
         check_hash: bool,
     ) -> Result<(Hash, u64), BankHashVerificationError> {
@@ -5940,8 +5952,13 @@ pub mod tests {
         solana_logger::setup();
 
         let (storages, _size, _slot_expected) = sample_storage();
-        let result =
-            AccountsDb::calculate_accounts_hash_without_index(&storages, None, false).unwrap();
+        let result = AccountsDb::calculate_accounts_hash_without_index(
+            &get_storage_refs(&storages),
+            None,
+            HashStats::default(),
+            false,
+        )
+        .unwrap();
         let expected_hash = Hash::from_str("GKot5hBsd81kMupNCXHaqbhv3huEbxAFMLnpcX2hniwn").unwrap();
         assert_eq!(result, (expected_hash, 0));
     }
@@ -5956,8 +5973,13 @@ pub mod tests {
                 item.hash
             });
         let sum = raw_expected.iter().map(|item| item.lamports).sum();
-        let result =
-            AccountsDb::calculate_accounts_hash_without_index(&storages, None, false).unwrap();
+        let result = AccountsDb::calculate_accounts_hash_without_index(
+            &get_storage_refs(&storages),
+            None,
+            HashStats::default(),
+            false,
+        )
+        .unwrap();
 
         assert_eq!(result, (expected_hash, sum));
     }
