@@ -4221,6 +4221,7 @@ impl AccountsDb {
             .par_chunks(MAX_ITEMS_PER_CHUNK)
             .map(|storages: &[Vec<Arc<AccountStorageEntry>>]| {
                 let mut retval = B::default();
+<<<<<<< HEAD
 
                 for sub_storages in storages {
                     for storage in sub_storages {
@@ -4229,6 +4230,19 @@ impl AccountsDb {
                         accounts.into_iter().for_each(|stored_account| {
                             scan_func(LoadedAccount::Stored(stored_account), &mut retval, slot)
                         });
+=======
+                let start = snapshot_storages.range().start + chunk * MAX_ITEMS_PER_CHUNK;
+                let end = std::cmp::min(start + MAX_ITEMS_PER_CHUNK, snapshot_storages.range().end);
+                for slot in start..end {
+                    let sub_storages = snapshot_storages.get(slot);
+                    if let Some(sub_storages) = sub_storages {
+                        for storage in sub_storages {
+                            let accounts = storage.accounts.accounts(0);
+                            accounts.into_iter().for_each(|stored_account| {
+                                scan_func(LoadedAccount::Stored(stored_account), &mut retval, slot)
+                            });
+                        }
+>>>>>>> 4bd32d891 (remove slot lookup (#17691))
                     }
                 }
                 retval
