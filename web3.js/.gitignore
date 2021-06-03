@@ -14,7 +14,7 @@ coverage
 .nyc_output
 
 # Release
-lib
+# lib
 
 # Generated docs
 doc
